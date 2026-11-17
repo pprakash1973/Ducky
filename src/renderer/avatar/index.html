@@ -1,0 +1,64 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'" />
+<link rel="stylesheet" href="avatar.css" />
+</head>
+<body>
+  <div id="duck" class="idle" title="Click to chat, drag to move, right-click for menu">
+    <svg id="bot" viewBox="0 0 100 130" width="96" height="125" aria-label="Ducky robot">
+      <!-- ground shadow -->
+      <ellipse cx="48" cy="126" rx="26" ry="3.5" fill="#000" opacity=".18" />
+
+      <!-- legs -->
+      <g id="legs">
+        <rect x="31" y="84" width="9" height="22" rx="3" fill="#2f3640" />
+        <rect x="55" y="84" width="9" height="22" rx="3" fill="#2f3640" />
+        <rect x="28" y="92" width="15" height="14" rx="5" fill="#e4e9ef" stroke="#c4ccd6" stroke-width="1" />
+        <rect x="52" y="92" width="15" height="14" rx="5" fill="#e4e9ef" stroke="#c4ccd6" stroke-width="1" />
+        <circle cx="35.5" cy="99" r="2.6" fill="#2f3640" />
+        <circle cx="59.5" cy="99" r="2.6" fill="#2f3640" />
+        <!-- orange feet -->
+        <path d="M24 112 Q24 106 32 106 L46 106 Q50 106 50 112 L50 118 L24 118 Z" fill="#ff8a1f" />
+        <path d="M48 112 Q48 106 56 106 L70 106 Q74 106 74 112 L74 118 L48 118 Z" fill="#ff8a1f" />
+        <rect x="24" y="115" width="26" height="5" rx="2.5" fill="#f2b04a" />
+        <rect x="48" y="115" width="26" height="5" rx="2.5" fill="#f2b04a" />
+      </g>
+
+      <!-- body -->
+      <g id="torso">
+        <rect x="22" y="56" width="52" height="32" rx="10" fill="#e4e9ef" stroke="#c4ccd6" stroke-width="1" />
+        <rect x="30" y="64" width="36" height="14" rx="5" fill="#f4f7fa" />
+        <circle cx="38" cy="71" r="2" fill="#ff8a1f" />
+        <rect x="46" y="69" width="14" height="3.5" rx="1.7" fill="#c4ccd6" />
+        <circle cx="24" cy="66" r="4" fill="#2f3640" />
+        <circle cx="72" cy="66" r="4" fill="#2f3640" />
+      </g>
+
+      <!-- neck -->
+      <rect x="42" y="38" width="12" height="20" rx="3" fill="#2f3640" />
+      <circle cx="48" cy="46" r="2" fill="#8b95a3" />
+      <circle cx="48" cy="52" r="2" fill="#8b95a3" />
+
+      <!-- head -->
+      <g id="head">
+        <path d="M16 24 Q16 6 38 6 L72 6 Q86 6 86 22 L86 30 L16 30 Z" fill="#eef2f6" stroke="#c4ccd6" stroke-width="1" />
+        <path d="M16 26 L86 26 L86 33 Q86 38 80 38 L22 38 Q16 38 16 33 Z" fill="#ff8a1f" />
+        <circle cx="26" cy="31" r="1.4" fill="#b85a06" />
+        <circle cx="31" cy="31" r="1.4" fill="#b85a06" />
+        <circle cx="36" cy="31" r="1.4" fill="#b85a06" />
+        <!-- lens -->
+        <circle id="lensRing" cx="68" cy="19" r="10.5" fill="#ff8a1f" />
+        <circle cx="68" cy="19" r="7.2" fill="#1e2228" />
+        <circle id="lens" cx="68" cy="19" r="4.6" fill="#3a4350" />
+        <circle cx="66" cy="17" r="1.6" fill="#fff" opacity=".85" />
+        <!-- status LED -->
+        <circle id="led" cx="42" cy="17" r="2.2" fill="#37d67a" />
+      </g>
+    </svg>
+    <div id="badge"></div>
+  </div>
+  <script src="avatar.js"></script>
+</body>
+</html>

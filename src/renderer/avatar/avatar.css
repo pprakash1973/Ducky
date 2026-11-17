@@ -1,0 +1,42 @@
+html, body { margin: 0; background: transparent; overflow: hidden; user-select: none; }
+#duck { position: relative; width: 140px; height: 140px; display: flex; align-items: center; justify-content: center; cursor: grab; }
+#bot { filter: drop-shadow(0 3px 4px rgba(0,0,0,.25)); overflow: visible; }
+#badge { position: absolute; top: 2px; left: 6px; font-size: 20px; }
+
+/* Parts that animate pivot around their own boxes. */
+#head, #torso, #legs, #lensRing, #lens, #led { transform-box: fill-box; }
+#head { transform-origin: 50% 100%; }
+#bot { transform-origin: 50% 100%; transform-box: fill-box; }
+
+/* idle: gentle bob + slow lens blink */
+.idle #bot { animation: bob 2.6s ease-in-out infinite; }
+.idle #lens { animation: blink 5s infinite; transform-origin: center; }
+
+/* listening: head tips up toward you, LED and lens glow */
+.listening #head { animation: lookUp 1.1s ease-in-out infinite; }
+.listening #led { fill: #37d67a; animation: glow .8s ease-in-out infinite; }
+.listening #lens { fill: #ffb866; }
+.listening #badge::after { content: "🎤"; }
+
+/* thinking: head wobbles, LED amber */
+.thinking #head { animation: wobble .9s ease-in-out infinite; }
+.thinking #led { fill: #ffb020; animation: glow .6s ease-in-out infinite; }
+.thinking #badge::after { content: "💭"; }
+
+/* speaking: quick bob, lens flickers */
+.speaking #bot { animation: bob .45s ease-in-out infinite; }
+.speaking #lens { fill: #ffd28a; animation: glow .35s ease-in-out infinite; }
+.speaking #badge::after { content: "💬"; }
+
+.done #led { fill: #37d67a; }
+.done #badge::after { content: "✅"; }
+
+.error #led { fill: #ff4d4d; animation: glow .5s ease-in-out infinite; }
+.error #lens { fill: #7a2a2a; }
+.error #badge::after { content: "⚠️"; }
+
+@keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes lookUp { 0%,100% { transform: rotate(-3deg); } 50% { transform: rotate(5deg); } }
+@keyframes wobble { 0%,100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
+@keyframes glow { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+@keyframes blink { 0%,92%,100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }

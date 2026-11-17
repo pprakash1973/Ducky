@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'" />
+<title>Ducky Settings</title>
+<link rel="stylesheet" href="settings.css" />
+</head>
+<body>
+  <h1>🦆 Ducky settings</h1>
+
+  <section>
+    <h2>Claude API key</h2>
+    <input id="apiKey" type="password" placeholder="sk-ant-… (leave blank to keep current)" autocomplete="off" />
+    <p class="hint" id="keyStatus"></p>
+  </section>
+
+  <section>
+    <h2>Microsoft Graph (optional)</h2>
+    <label>Application (client) ID <input id="azureClientId" placeholder="empty = use desktop Outlook" /></label>
+    <label>Tenant ID <input id="azureTenantId" placeholder="empty = organizations" /></label>
+  </section>
+
+  <section>
+    <h2>Folders to scan for recent work</h2>
+    <p class="hint">Only file names and dates are read, never contents.</p>
+    <ul id="folders"></ul>
+    <button id="addFolder" type="button">Add folder…</button>
+  </section>
+
+  <section>
+    <h2>Voice</h2>
+    <label class="row"><input type="checkbox" id="wakeWord" /> "Hey Ducky" wake word (microphone stays on)</label>
+    <label class="row"><input type="checkbox" id="speakReplies" /> Speak replies after voice requests</label>
+  </section>
+
+  <section>
+    <button id="openLog" type="button" class="secondary">Show activity log</button>
+  </section>
+
+  <footer>
+    <span id="status"></span>
+    <button id="save" type="button">Save</button>
+  </footer>
+  <script src="settings.js"></script>
+</body>
+</html>
