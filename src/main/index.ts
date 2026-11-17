@@ -167,11 +167,23 @@ function recordFromMic(): Promise<Buffer | null> {
 async function listen(): Promise<string | null> {
   const cfg = loadConfig();
   const key = getSpeechKey();
+  if (key && !cfg.speechRegion) say('An Azure Speech key is saved but the Region is empty in Settings (e.g. southeastasia), so I am using offline recognition.');
   if (key && cfg.speechRegion) {
     try {
       const wav = await recordFromMic();
       if (!wav) return null;
-      return await recognizeAzure(wav, { key, region: cfg.speechRegion, language: cfg.speechLang || 'en-IN' });
+      try {
+        fs.writeFileSync(path.join(app.getPath('userData'), 'last-recording.wav'), wav); // for diagnosing mic problems
+      } catch {
+        /* diagnostic only */
+      }
+      const text = await recognizeAzure(wav, { key, region: cfg.speechRegion, language: cfg.speechLang || 'en-IN' });
+      try {
+        fs.appendFileSync(path.join(app.getPath('userData'), 'stt.log'), `${new Date().toISOString()} ${wav.length}B ${JSON.stringify(text)}\n`);
+      } catch {
+        /* diagnostic only */
+      }
+      return text;
     } catch (e) {
       say(`${(e as Error).message} Using offline recognition instead.`);
     }

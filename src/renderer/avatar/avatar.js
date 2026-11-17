@@ -38,12 +38,26 @@ function toWav(chunks, rate) {
   return buf;
 }
 
+function beep() {
+  try {
+    const c = new AudioContext();
+    const o = c.createOscillator();
+    const g = c.createGain();
+    o.frequency.value = 880;
+    g.gain.value = 0.08;
+    o.connect(g); g.connect(c.destination);
+    o.start();
+    o.stop(c.currentTime + 0.12);
+    o.onended = () => c.close();
+  } catch { /* cue only */ }
+}
+
 async function startRecording() {
   stopRecording(true);
   let stream;
   try {
     stream = await navigator.mediaDevices.getUserMedia({
-      audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+      audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: false }
     });
   } catch {
     window.ducky.recordDone({ error: 'I cannot access a microphone. Check Windows Settings > Privacy > Microphone.' });
@@ -77,15 +91,17 @@ async function startRecording() {
     for (let i = 0; i < data.length; i++) sum += data[i] * data[i];
     const loud = Math.sqrt(sum / data.length) > 0.012;
     elapsed += dur;
+    if (elapsed < 0.35) return; // skip the ready beep and mic start-up noise
     if (loud) { heardSpeech = true; silentFor = 0; } else if (heardSpeech) silentFor += dur;
-    if (heardSpeech || chunks.length < 4) chunks.push(data); // keep a little lead-in
-    else chunks.splice(0, 1, data);
+    chunks.push(data);
+    if (!heardSpeech && chunks.length > 4) chunks.shift(); // keep only a short lead-in before speech
     if (heardSpeech && silentFor > 1.2) finish(false);
     else if (!heardSpeech && elapsed > 7) finish(true);
     else if (elapsed > 20) finish(false);
   };
   src.connect(proc);
   proc.connect(ctx.destination);
+  beep(); // mic is open: speak now
 }
 
 function stopRecording(silent) {
