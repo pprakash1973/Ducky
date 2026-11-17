@@ -23,6 +23,26 @@ export function setApiKey(key: string) {
   fs.writeFileSync(file(), safeStorage.encryptString(key.trim()));
 }
 
+const speechFile = () => path.join(app.getPath('userData'), 'azure-speech-key.bin');
+
+export function getSpeechKey(): string | undefined {
+  if (process.env.AZURE_SPEECH_KEY) return process.env.AZURE_SPEECH_KEY;
+  try {
+    if (fs.existsSync(speechFile()) && safeStorage.isEncryptionAvailable()) {
+      return safeStorage.decryptString(fs.readFileSync(speechFile()));
+    }
+  } catch {
+    /* unreadable: treat as unset */
+  }
+  return undefined;
+}
+
+export function setSpeechKey(key: string) {
+  if (!safeStorage.isEncryptionAvailable()) throw new Error('OS encryption is not available, so the key cannot be stored safely.');
+  fs.mkdirSync(path.dirname(speechFile()), { recursive: true });
+  fs.writeFileSync(speechFile(), safeStorage.encryptString(key.trim()));
+}
+
 export function clearApiKey() {
   try {
     fs.unlinkSync(file());

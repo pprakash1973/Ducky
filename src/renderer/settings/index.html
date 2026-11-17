@@ -29,6 +29,14 @@
   </section>
 
   <section>
+    <h2>Azure Speech (better voice recognition)</h2>
+    <input id="speechKey" type="password" placeholder="Speech key (leave blank to keep current)" autocomplete="off" />
+    <p class="hint" id="speechStatus"></p>
+    <label>Region <input id="speechRegion" placeholder="e.g. southeastasia" /></label>
+    <label>Language <input id="speechLang" placeholder="en-IN" /></label>
+  </section>
+
+  <section>
     <h2>Voice</h2>
     <label class="row"><input type="checkbox" id="wakeWord" /> "Hey Ducky" wake word (microphone stays on)</label>
     <label class="row"><input type="checkbox" id="speakReplies" /> Speak replies after voice requests</label>

@@ -12,9 +12,20 @@ export interface DuckConfig {
   /** Azure app registration for Microsoft Graph. Empty = use desktop Outlook only. */
   azureClientId: string;
   azureTenantId: string;
+  /** Azure Speech region (e.g. southeastasia) and recognition language. Key is stored separately, encrypted. */
+  speechRegion: string;
+  speechLang: string;
 }
 
-const DEFAULTS: DuckConfig = { scanDirs: [], wakeWord: false, speakReplies: true, azureClientId: '', azureTenantId: '' };
+const DEFAULTS: DuckConfig = {
+  scanDirs: [],
+  wakeWord: false,
+  speakReplies: true,
+  azureClientId: '',
+  azureTenantId: '',
+  speechRegion: '',
+  speechLang: 'en-IN'
+};
 
 const file = () => path.join(app.getPath('userData'), 'config.json');
 

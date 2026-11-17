@@ -28,6 +28,9 @@ function renderFolders() {
 async function load() {
   const s = await window.ducky.getSettings();
   $('keyStatus').textContent = s.hasKey ? 'A key is saved (stored encrypted by Windows).' : 'No key saved yet.';
+  $('speechStatus').textContent = s.hasSpeechKey ? 'A speech key is saved (stored encrypted by Windows).' : 'No speech key: using offline recognition.';
+  $('speechRegion').value = s.speechRegion;
+  $('speechLang').value = s.speechLang;
   $('azureClientId').value = s.azureClientId;
   $('azureTenantId').value = s.azureTenantId;
   $('wakeWord').checked = s.wakeWord;
@@ -49,6 +52,9 @@ $('openLog').onclick = () => window.ducky.openAuditLog();
 $('save').onclick = async () => {
   const res = await window.ducky.saveSettings({
     apiKey: $('apiKey').value,
+    speechKey: $('speechKey').value,
+    speechRegion: $('speechRegion').value.trim(),
+    speechLang: $('speechLang').value.trim(),
     azureClientId: $('azureClientId').value.trim(),
     azureTenantId: $('azureTenantId').value.trim(),
     wakeWord: $('wakeWord').checked,
@@ -56,6 +62,7 @@ $('save').onclick = async () => {
     scanDirs: folders
   });
   $('apiKey').value = '';
+  $('speechKey').value = '';
   $('status').style.color = res.ok ? '#2a7' : '#c33';
   $('status').textContent = res.ok ? 'Saved ✓' : res.error;
   if (res.ok) load();

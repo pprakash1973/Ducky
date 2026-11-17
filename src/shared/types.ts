@@ -11,5 +11,8 @@ export const IPC = {
   heard: 'duck:heard',
   speak: 'duck:speak',
   stopSpeak: 'duck:stop-speak',
-  speakDone: 'duck:speak-done'
+  speakDone: 'duck:speak-done',
+  recordStart: 'duck:record-start',
+  recordCancel: 'duck:record-cancel',
+  recordDone: 'duck:record-done'
 } as const;

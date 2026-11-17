@@ -3,7 +3,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { auditPath } from './audit';
 import { resetOutlook } from './connectors/outlook';
-import { getApiKey, setApiKey } from './secrets';
+import { getApiKey, getSpeechKey, setApiKey, setSpeechKey } from './secrets';
+import { recognizeAzure } from './voice/azure';
 import { DuckState, IPC } from '../shared/types';
 import { DuckAgent, friendlyError } from './agent/agent';
 import { loadConfig, saveConfig } from './config';
@@ -150,6 +151,34 @@ async function runCommand(text: string, spoken: boolean) {
   }
 }
 
+let pendingRecord: { resolve: (b: Buffer | null) => void; reject: (e: Error) => void } | null = null;
+
+/** Asks the avatar window to capture one utterance from the mic and returns it as a 16 kHz WAV. */
+function recordFromMic(): Promise<Buffer | null> {
+  return new Promise((resolve, reject) => {
+    if (!avatar) return resolve(null);
+    pendingRecord?.resolve(null);
+    pendingRecord = { resolve, reject };
+    avatar.webContents.send(IPC.recordStart);
+  });
+}
+
+/** Azure Speech when a key and region are set; otherwise (or if Azure fails) the offline recognizer. */
+async function listen(): Promise<string | null> {
+  const cfg = loadConfig();
+  const key = getSpeechKey();
+  if (key && cfg.speechRegion) {
+    try {
+      const wav = await recordFromMic();
+      if (!wav) return null;
+      return await recognizeAzure(wav, { key, region: cfg.speechRegion, language: cfg.speechLang || 'en-IN' });
+    } catch (e) {
+      say(`${(e as Error).message} Using offline recognition instead.`);
+    }
+  }
+  return listenOnce();
+}
+
 let listening = false;
 
 async function voiceTurn() {
@@ -169,7 +198,7 @@ async function voiceTurnInner() {
   setState('listening');
   let heard: string | null = null;
   try {
-    heard = await listenOnce();
+    heard = await listen();
   } catch (e) {
     say((e as Error).message);
     setState('error');
@@ -223,6 +252,9 @@ function registerSettingsIpc() {
     const c = loadConfig();
     return {
       hasKey: !!getApiKey(),
+      hasSpeechKey: !!getSpeechKey(),
+      speechRegion: c.speechRegion,
+      speechLang: c.speechLang,
       azureClientId: c.azureClientId,
       azureTenantId: c.azureTenantId,
       wakeWord: c.wakeWord,
@@ -244,8 +276,11 @@ function registerSettingsIpc() {
   ipcMain.handle('settings:save', (_e, s: any) => {
     try {
       if (typeof s.apiKey === 'string' && s.apiKey.trim()) setApiKey(s.apiKey);
+      if (typeof s.speechKey === 'string' && s.speechKey.trim()) setSpeechKey(s.speechKey);
       const prev = loadConfig();
       const next = saveConfig({
+        speechRegion: String(s.speechRegion ?? '').trim().toLowerCase(),
+        speechLang: String(s.speechLang ?? '').trim() || 'en-IN',
         azureClientId: String(s.azureClientId ?? '').trim(),
         azureTenantId: String(s.azureTenantId ?? '').trim(),
         wakeWord: !!s.wakeWord,
@@ -332,6 +367,13 @@ app.whenReady().then(() => {
   ipcMain.on(IPC.togglePanel, togglePanel);
   ipcMain.on(IPC.listen, () => void voiceTurn());
   ipcMain.on(IPC.speakDone, () => speakDoneResolve?.());
+  ipcMain.on(IPC.recordDone, (_e, r: { wav?: ArrayBuffer; error?: string }) => {
+    const p = pendingRecord;
+    pendingRecord = null;
+    if (!p) return;
+    if (r?.error) p.reject(new Error(r.error));
+    else p.resolve(r?.wav ? Buffer.from(r.wav) : null);
+  });
 
   ipcMain.on(IPC.dragMove, (_e, dx: number, dy: number) => {
     if (!avatar) return;
