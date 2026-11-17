@@ -35,6 +35,34 @@ html, body { margin: 0; background: transparent; overflow: hidden; user-select: 
 .error #lens { fill: #7a2a2a; }
 .error #badge::after { content: "⚠️"; }
 
+/* facing: the robot looks right by default; ".left" mirrors it */
+#flipper { transform-box: view-box; transform-origin: 50% 50%; }
+.left #flipper { transform: scaleX(-1); }
+
+/* running: fast bob, legs scissor */
+.running #bot { animation: runbob .26s linear infinite; }
+.running #legs { transform-origin: 50% 0%; animation: scissor .26s ease-in-out infinite; }
+.running #badge::after { content: "💨"; }
+
+/* hopping: squash and stretch (the window itself does the jumping) */
+.hopping #bot { animation: squash .45s ease-in-out infinite; }
+
+/* somersault: one full backflip */
+.flip #bot { transform-origin: 50% 50%; animation: somersault 1s ease-in-out 1; }
+
+/* napping: head droops, lens closes, slow breathing */
+.napping #head { transform: rotate(16deg) translateY(5px); }
+.napping #lens { transform: scaleY(.1); transform-origin: center; }
+.napping #led { fill: #ffb020; animation: glow 3s ease-in-out infinite; }
+.napping #bot { animation: breathe 3s ease-in-out infinite; }
+.napping #badge::after { content: "💤"; }
+
+@keyframes runbob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes scissor { 0%,100% { transform: skewX(-14deg); } 50% { transform: skewX(14deg); } }
+@keyframes squash { 0%,100% { transform: scale(1.1,.9); } 45% { transform: scale(.94,1.1); } }
+@keyframes somersault { 0% { transform: rotate(0) scale(1); } 50% { transform: rotate(-180deg) scale(.8); } 100% { transform: rotate(-360deg) scale(1); } }
+@keyframes breathe { 0%,100% { transform: scale(1); } 50% { transform: scale(1.025,.975); } }
+
 @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
 @keyframes lookUp { 0%,100% { transform: rotate(-3deg); } 50% { transform: rotate(5deg); } }
 @keyframes wobble { 0%,100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }

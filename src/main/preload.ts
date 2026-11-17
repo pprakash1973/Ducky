@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('ducky', {
   onHeard: (cb: (text: string) => void) => ipcRenderer.on('duck:heard', (_e, t) => cb(t)),
   onSpeak: (cb: (text: string) => void) => ipcRenderer.on('duck:speak', (_e, t) => cb(t)),
   onStopSpeak: (cb: () => void) => ipcRenderer.on('duck:stop-speak', () => cb()),
+  onQuack: (cb: () => void) => ipcRenderer.on('duck:quack', () => cb()),
   onRecordStart: (cb: () => void) => ipcRenderer.on('duck:record-start', () => cb()),
   onRecordCancel: (cb: () => void) => ipcRenderer.on('duck:record-cancel', () => cb()),
   recordDone: (r: { wav?: ArrayBuffer; error?: string }) => ipcRenderer.send('duck:record-done', r),

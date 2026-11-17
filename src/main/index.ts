@@ -5,6 +5,8 @@ import { auditPath } from './audit';
 import { resetOutlook } from './connectors/outlook';
 import { getApiKey, getSpeechKey, setApiKey, setSpeechKey } from './secrets';
 import { recognizeAzure } from './voice/azure';
+import { BEHAVIOR_LINES, parseBehavior } from './behaviorParse';
+import { createBehaviors } from './behaviors';
 import { DuckState, IPC } from '../shared/types';
 import { DuckAgent, friendlyError } from './agent/agent';
 import { loadConfig, saveConfig } from './config';
@@ -85,6 +87,12 @@ function setState(state: DuckState) {
   avatar?.webContents.send(IPC.setState, state);
 }
 
+const behaviors = createBehaviors({
+  getAvatar: () => avatar,
+  setState,
+  hidePanel: () => panel?.hide()
+});
+
 let agent: DuckAgent;
 let busy = false;
 let speakDoneResolve: (() => void) | null = null;
@@ -133,6 +141,15 @@ async function runCommand(text: string, spoken: boolean) {
     say('One thing at a time, please — still working on the last request.');
     return;
   }
+  avatar?.webContents.send(IPC.quack); // acknowledge every command with a quack
+  // Short "play" commands (run, hop, nap, somersault) are handled here, without calling Claude.
+  const trick = parseBehavior(text);
+  if (trick) {
+    say(BEHAVIOR_LINES[trick]);
+    void behaviors.perform(trick);
+    return;
+  }
+  behaviors.cancel();
   busy = true;
   setState('thinking');
   try {
@@ -206,7 +223,7 @@ async function voiceTurn() {
 async function voiceTurnInner() {
   stopWake();
   stopSpeaking();
-  showPanel();
+  behaviors.cancel(); // interrupt a run or a nap when you start talking
   setState('listening');
   let heard: string | null = null;
   try {
@@ -214,6 +231,7 @@ async function voiceTurnInner() {
   } catch (e) {
     say((e as Error).message);
     setState('error');
+    if (loadConfig().speakReplies) await speak((e as Error).message); // the chat is hidden, so say it aloud
     setTimeout(() => setState('idle'), 2000);
     resumeWake();
     return;
@@ -376,7 +394,12 @@ app.whenReady().then(() => {
   globalShortcut.register('Control+Alt+D', () => void voiceTurn());
 
   registerSettingsIpc();
-  ipcMain.on(IPC.togglePanel, togglePanel);
+  ipcMain.on(IPC.togglePanel, () => {
+    if (behaviors.isNapping()) {
+      behaviors.cancel(); // a click wakes the napping duck
+      setState('idle');
+    } else togglePanel();
+  });
   ipcMain.on(IPC.listen, () => void voiceTurn());
   ipcMain.on(IPC.speakDone, () => speakDoneResolve?.());
   ipcMain.on(IPC.recordDone, (_e, r: { wav?: ArrayBuffer; error?: string }) => {

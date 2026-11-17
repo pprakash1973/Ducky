@@ -1,4 +1,17 @@
-export type DuckState = 'idle' | 'listening' | 'thinking' | 'speaking' | 'done' | 'error';
+/** The renderer uses the state string as CSS class names, so "running left" is two classes. */
+export type DuckState =
+  | 'idle'
+  | 'listening'
+  | 'thinking'
+  | 'speaking'
+  | 'done'
+  | 'error'
+  | 'running'
+  | 'running left'
+  | 'hopping'
+  | 'hopping left'
+  | 'flip'
+  | 'napping';
 
 export const IPC = {
   setState: 'duck:set-state',
@@ -12,6 +25,7 @@ export const IPC = {
   speak: 'duck:speak',
   stopSpeak: 'duck:stop-speak',
   speakDone: 'duck:speak-done',
+  quack: 'duck:quack',
   recordStart: 'duck:record-start',
   recordCancel: 'duck:record-cancel',
   recordDone: 'duck:record-done'

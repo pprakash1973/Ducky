@@ -1,7 +1,7 @@
 const duck = document.getElementById('duck');
 
 window.ducky.onState((state) => {
-  duck.className = state;
+  duck.className = state; // e.g. "running left" sets two classes
 });
 
 // Text-to-speech via the OS voices (Chromium speechSynthesis).
@@ -37,6 +37,33 @@ function toWav(chunks, rate) {
   }
   return buf;
 }
+
+// A synthesized "quack-quack": two nasal, downward-sweeping sawtooth honks through a band-pass filter.
+function quack() {
+  try {
+    const c = new AudioContext();
+    const t = c.currentTime;
+    [0, 0.19].forEach((d, i) => {
+      const o = c.createOscillator();
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(540 - i * 50, t + d);
+      o.frequency.exponentialRampToValueAtTime(230, t + d + 0.14);
+      const f = c.createBiquadFilter();
+      f.type = 'bandpass';
+      f.frequency.value = 1150;
+      f.Q.value = 2.5;
+      const g = c.createGain();
+      g.gain.setValueAtTime(0.0001, t + d);
+      g.gain.exponentialRampToValueAtTime(0.4, t + d + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.15);
+      o.connect(f); f.connect(g); g.connect(c.destination);
+      o.start(t + d);
+      o.stop(t + d + 0.17);
+    });
+    setTimeout(() => c.close(), 700);
+  } catch { /* cue only */ }
+}
+window.ducky.onQuack(quack);
 
 function beep() {
   try {
