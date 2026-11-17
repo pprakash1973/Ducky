@@ -15,6 +15,8 @@ export interface DuckConfig {
   /** Azure Speech region (e.g. southeastasia) and recognition language. Key is stored separately, encrypted. */
   speechRegion: string;
   speechLang: string;
+  /** Mic stays open and Ducky acts when it hears "Ducky ...". Needs Azure Speech. */
+  alwaysListen: boolean;
 }
 
 const DEFAULTS: DuckConfig = {
@@ -24,7 +26,8 @@ const DEFAULTS: DuckConfig = {
   azureClientId: '',
   azureTenantId: '',
   speechRegion: '',
-  speechLang: 'en-IN'
+  speechLang: 'en-IN',
+  alwaysListen: true
 };
 
 const file = () => path.join(app.getPath('userData'), 'config.json');

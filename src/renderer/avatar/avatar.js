@@ -38,6 +38,87 @@ function toWav(chunks, rate) {
   return buf;
 }
 
+// Always-listening mode: the mic stays open, speech segments are cut out by a simple volume gate
+// and sent to the main process, which transcribes them and only acts when "Ducky" is said.
+let cont = null;
+let curState = 'idle';
+let resetSegment = () => {};
+const LISTENABLE = ['idle', 'done', 'napping'];
+window.ducky.onState((s) => {
+  curState = s;
+  if (!LISTENABLE.includes(s)) resetSegment(); // don't capture our own voice or while busy
+});
+
+async function startContinuous() {
+  if (cont) return;
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: false }
+    });
+  } catch {
+    return;
+  }
+  const RATE = 16000;
+  const ctx = new AudioContext({ sampleRate: RATE });
+  const src = ctx.createMediaStreamSource(stream);
+  const proc = ctx.createScriptProcessor(2048, 1, 1); // ~128 ms per frame
+  cont = { stream, ctx, src, proc };
+  let pre = [];
+  let seg = null;
+  let silent = 0;
+  let voiced = 0;
+  let floor = 0.002; // running estimate of room noise
+  resetSegment = () => { seg = null; pre = []; silent = 0; voiced = 0; };
+
+  proc.onaudioprocess = (e) => {
+    const data = new Float32Array(e.inputBuffer.getChannelData(0));
+    if (!LISTENABLE.includes(curState) || speechSynthesis.speaking) return resetSegment();
+    let sum = 0;
+    for (let i = 0; i < data.length; i++) sum += data[i] * data[i];
+    const rms = Math.sqrt(sum / data.length);
+    const loud = rms > Math.max(0.012, floor * 3);
+    if (!seg) {
+      if (!loud) {
+        floor = floor * 0.95 + rms * 0.05;
+        pre.push(data);
+        if (pre.length > 4) pre.shift(); // ~0.5 s lead-in so the first word isn't clipped
+        return;
+      }
+      seg = [...pre];
+      pre = [];
+      silent = 0;
+      voiced = 0;
+    }
+    seg.push(data);
+    if (loud) { voiced++; silent = 0; } else silent++;
+    if (silent >= 7 || seg.length >= 120) { // ~0.9 s of quiet, or 15 s max
+      const chunks = seg;
+      const worthSending = voiced >= 3; // ignore clicks and coughs
+      resetSegment();
+      if (worthSending) window.ducky.utterance(toWav(chunks, RATE));
+    }
+  };
+  src.connect(proc);
+  proc.connect(ctx.destination);
+  document.body.classList.add('mic-on');
+}
+
+function stopContinuous() {
+  if (!cont) return;
+  const c = cont;
+  cont = null;
+  resetSegment();
+  c.proc.disconnect();
+  c.src.disconnect();
+  c.stream.getTracks().forEach((t) => t.stop());
+  c.ctx.close();
+  document.body.classList.remove('mic-on');
+}
+
+window.ducky.onMicOn(() => void startContinuous());
+window.ducky.onMicOff(stopContinuous);
+
 // A synthesized "quack-quack": two nasal, downward-sweeping sawtooth honks through a band-pass filter.
 function quack() {
   try {

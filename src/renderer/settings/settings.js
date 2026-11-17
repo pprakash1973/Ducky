@@ -33,6 +33,7 @@ async function load() {
   $('speechLang').value = s.speechLang;
   $('azureClientId').value = s.azureClientId;
   $('azureTenantId').value = s.azureTenantId;
+  $('alwaysListen').checked = s.alwaysListen;
   $('wakeWord').checked = s.wakeWord;
   $('speakReplies').checked = s.speakReplies;
   folders = s.scanDirs;
@@ -57,6 +58,7 @@ $('save').onclick = async () => {
     speechLang: $('speechLang').value.trim(),
     azureClientId: $('azureClientId').value.trim(),
     azureTenantId: $('azureTenantId').value.trim(),
+    alwaysListen: $('alwaysListen').checked,
     wakeWord: $('wakeWord').checked,
     speakReplies: $('speakReplies').checked,
     scanDirs: folders

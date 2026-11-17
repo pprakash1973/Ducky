@@ -26,6 +26,9 @@ export const IPC = {
   stopSpeak: 'duck:stop-speak',
   speakDone: 'duck:speak-done',
   quack: 'duck:quack',
+  micOn: 'duck:mic-on',
+  micOff: 'duck:mic-off',
+  utterance: 'duck:utterance',
   recordStart: 'duck:record-start',
   recordCancel: 'duck:record-cancel',
   recordDone: 'duck:record-done'

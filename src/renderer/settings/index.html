@@ -38,7 +38,8 @@
 
   <section>
     <h2>Voice</h2>
-    <label class="row"><input type="checkbox" id="wakeWord" /> "Hey Ducky" wake word (microphone stays on)</label>
+    <label class="row"><input type="checkbox" id="alwaysListen" /> Always listening: say "Ducky …" with no hotkey (needs Azure Speech; the microphone stays open and speech is sent to Azure for transcription)</label>
+    <label class="row"><input type="checkbox" id="wakeWord" /> Offline "Hey Ducky" wake word (fallback when Azure is off)</label>
     <label class="row"><input type="checkbox" id="speakReplies" /> Speak replies after voice requests</label>
   </section>
 

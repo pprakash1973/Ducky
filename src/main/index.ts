@@ -7,6 +7,7 @@ import { getApiKey, getSpeechKey, setApiKey, setSpeechKey } from './secrets';
 import { recognizeAzure } from './voice/azure';
 import { BEHAVIOR_LINES, parseBehavior } from './behaviorParse';
 import { createBehaviors } from './behaviors';
+import { parseWake } from './wakeParse';
 import { DuckState, IPC } from '../shared/types';
 import { DuckAgent, friendlyError } from './agent/agent';
 import { loadConfig, saveConfig } from './config';
@@ -246,14 +247,65 @@ async function voiceTurnInner() {
   resumeWake();
 }
 
+/** Always-listening needs Azure Speech (the offline recognizer is too inaccurate for open-mic use). */
+function micMode(): boolean {
+  const c = loadConfig();
+  return !!(c.alwaysListen && getSpeechKey() && c.speechRegion);
+}
+
+/** Applies the listening settings: open mic (Azure), or the offline "Hey Ducky" listener, or nothing. */
+function applyListening() {
+  if (micMode()) {
+    stopWake();
+    avatar?.webContents.send(IPC.micOn);
+  } else {
+    avatar?.webContents.send(IPC.micOff);
+    if (loadConfig().wakeWord) resumeWake();
+    else stopWake();
+  }
+}
+
+let handlingUtterance = false;
+
+/** A speech segment from the open mic: transcribe it, and act only if Ducky was addressed. */
+async function handleUtterance(wav: Buffer) {
+  if (handlingUtterance || busy || listening || !micMode()) return;
+  handlingUtterance = true;
+  try {
+    const c = loadConfig();
+    const text = await recognizeAzure(wav, { key: getSpeechKey()!, region: c.speechRegion, language: c.speechLang || 'en-IN' });
+    const { addressed, command } = parseWake(text ?? '');
+    // Speech not meant for Ducky is dropped immediately and never logged.
+    if (!addressed) return;
+    if (command) {
+      await runCommand(command, true);
+    } else {
+      // Just the name: quack, then listen for the request.
+      avatar?.webContents.send(IPC.quack);
+      await new Promise((r) => setTimeout(r, 600));
+      void voiceTurn();
+    }
+  } catch (e) {
+    console.error('utterance failed:', (e as Error).message);
+  } finally {
+    handlingUtterance = false;
+  }
+}
+
+let wakeRetries = 0;
+
+/** Keeps the "Hey Ducky" listener alive: on failure it retries instead of switching the setting off. */
 function resumeWake() {
-  if (!loadConfig().wakeWord) return;
+  if (micMode() || !loadConfig().wakeWord) return;
   startWake(
-    () => void voiceTurn(),
+    () => {
+      wakeRetries = 0;
+      void voiceTurn();
+    },
     (msg) => {
-      say(`Wake word stopped: ${msg}`);
-      saveConfig({ wakeWord: false });
-      refreshTray();
+      console.error(`Wake word listener stopped: ${msg}`);
+      if (wakeRetries++ < 20) setTimeout(resumeWake, Math.min(30_000, 2_000 * wakeRetries));
+      else say(`The "Hey Ducky" listener keeps failing: ${msg}`);
     }
   );
 }
@@ -282,6 +334,7 @@ function registerSettingsIpc() {
     const c = loadConfig();
     return {
       hasKey: !!getApiKey(),
+      alwaysListen: c.alwaysListen,
       hasSpeechKey: !!getSpeechKey(),
       speechRegion: c.speechRegion,
       speechLang: c.speechLang,
@@ -314,12 +367,12 @@ function registerSettingsIpc() {
         azureClientId: String(s.azureClientId ?? '').trim(),
         azureTenantId: String(s.azureTenantId ?? '').trim(),
         wakeWord: !!s.wakeWord,
+        alwaysListen: !!s.alwaysListen,
         speakReplies: !!s.speakReplies,
         scanDirs: (Array.isArray(s.scanDirs) ? s.scanDirs : []).map(String)
       });
       if (prev.azureClientId !== next.azureClientId || prev.azureTenantId !== next.azureTenantId) resetOutlook();
-      if (next.wakeWord) resumeWake();
-      else stopWake();
+      applyListening();
       refreshTray();
       return { ok: true };
     } catch (e) {
@@ -335,13 +388,22 @@ function refreshTray() {
       { label: 'Show / hide chat', click: togglePanel },
       { type: 'separator' },
       {
-        label: 'Hey Ducky wake word (mic stays on)',
+        label: 'Always listening: say "Ducky …" (mic stays on)',
+        type: 'checkbox',
+        checked: cfg.alwaysListen,
+        click: (item) => {
+          saveConfig({ alwaysListen: item.checked });
+          applyListening();
+          refreshTray();
+        }
+      },
+      {
+        label: 'Hey Ducky wake word, offline fallback',
         type: 'checkbox',
         checked: cfg.wakeWord,
         click: (item) => {
           saveConfig({ wakeWord: item.checked });
-          if (item.checked) resumeWake();
-          else stopWake();
+          applyListening();
           refreshTray();
         }
       },
@@ -402,6 +464,7 @@ app.whenReady().then(() => {
   });
   ipcMain.on(IPC.listen, () => void voiceTurn());
   ipcMain.on(IPC.speakDone, () => speakDoneResolve?.());
+  ipcMain.on(IPC.utterance, (_e, wav: ArrayBuffer) => void handleUtterance(Buffer.from(wav)));
   ipcMain.on(IPC.recordDone, (_e, r: { wav?: ArrayBuffer; error?: string }) => {
     const p = pendingRecord;
     pendingRecord = null;
@@ -433,7 +496,7 @@ app.whenReady().then(() => {
 
   ipcMain.on(IPC.command, (_e, text: string) => void runCommand(text, false));
 
-  resumeWake();
+  avatar?.webContents.once('did-finish-load', applyListening);
 });
 
 app.on('will-quit', () => {
